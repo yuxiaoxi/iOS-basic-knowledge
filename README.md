@@ -98,6 +98,115 @@ cocoapods
 iOS 系统提供的库均是动态库，可以共享，但是提供给开发者可制作的动态库是被剦割的，叫 embedded framework。也需要要拷贝至 App 中。
 
 
+## iOS 基础特性
+
+### KVC 和 KVO
+
+KVC: 键值编码，可以通过 key 或者 keypath 直接设置和获取对象的属性和方法的一种机制
+主要的方法有： 
+```swift
+setValue: forKey
+setValue: forKeyPath
+getValue: forKey
+getValue: forKeyPath
+
+```
+当能过 key 或者 keypath 找不到方法时，会报出 crash，unfindedKeyForValue
+
+KVO: 键值监听，属于 OC runtime 特性之一，作用是某个观察者注册该对象的某个属性时监听时，当该对象的该属性修改时，观察者能收到通知和新的内容。
+
+实现原理：某对象 A 被观察者监听时，系统会自动生成一个派生类 NSKVONotifying_A 的实例，该实现实现了 A Class 的方法及属性，并重写了属性的 setter 方法，该派生类的实例指向了 A 对象的 isa 指针，重写的 setter 方法会调用 keyforValueWillChange 以及 keyforValueDidChange 方法，并向观察者发送通知。
+
+#### 使用 KVO 会有哪些问题？
+
+1. 当观察者添加了监听时，未在 dealloc 方法调用的时候 remove 监听会导致 crash
+2. KVO 的监听和 remove 数不匹配时会 crash，例如：重复 remove
+3. 观察者未实现监听的回调函数 observeValueForKeyPath
+
+### Runtime
+
+Runtime: 运行时机制，为 OC 提供一种可以在运行时动态消息转发的可能
+常用场景：Swizzle、KVO、关联属性、KV归档、动态方法解析
+
+#### 消息传递机制
+
+方法调用是通过向目标对象发送消息来完成的，使用的是 OC 的 `objc_msgSend(id receiver, SEL sel)`
+
+#### 对象结构体
+
+对象的结构体：
+```
+struct objc_object {
+	Class isa OBJC_ISA_AVAILABILITY
+}
+```
+
+类对象的结构体：
+```
+struct objc_class {
+	Class isa // 指向元类
+	Class Super_class // 父类
+	const char name // 名称
+	long version // 版本号
+	long info // 基本信息
+	long instancesize // 大小
+	struct objc_iva_list ivars // 实例变量列表
+	struct objc_method_list methodLists // 实例方法列表
+	struct objc_protocol_list protocols // 协议列表
+	struct objc_cache cache // 方法 cache
+}
+```
+
+#### 元类对象 metaClass
+元类对象中存放类变量、类方法（静态方法）以及类对象的创建方法及信息，元类中也有 isa 指针，指向的是 NSObject 的元类对象。
+
+### Runtime 消息转发
+
+消息发送是通过调用 `objc_msgSend(id receiver, SEL sel)` ，向接收者对象发送消息，首先是从对象的 cache 方法列表中找，然后从对象的方法列表开始找，找不到向父类的方法列表找，依次找到基类 NSObject 的方法列表，如果都找不到就开始消息转发流程。
+
+#### 消息转发流程分为三步
+
+1. 动态方法解析，使用 `resolveInstanceMethod` 来处理，如果返回 YES 则处理该消息
+2. 备用接收者，使用 `forwardingTargetForSelector` 来返回备用接收者，如果返回不为 nil 则处理该消息
+3. 消息重定向，分为两步，第一步，使用 `methodSignatureForSelector` 进行方法签名，如果返回 nil 则无法处理消息，并报出 unrecognized Selector 异常，反之则走第二步，使用 `forwardingInvocation` 来生成新的 NSInvocation 进行消息处理，如果未处理成功也会报出 unrecognized selector 异常。
+
+#### 如何通过 Selector 寻找 IMP
+
+runtime 提供两种方式：
+1. `class_getMethodImplemention(Class cls, SEL name)`
+2. `method_getImplemention(Method m)`
+
+#### Swizzle
+
+swizzle 作用是给方法进行替换，原理很简单即将方法的 IMP 进行替换即可。
+
+方法添加方式： `class_addMethod(Class cls, SEL sel, IMP method, String code)`
+cls: 被添加的类对象
+name: 方法名
+IMP: 方法实现指针
+类型编码: "V@:"，内存模型相关
+
+方法替换的方式有三种：
+1. `method_exchangeImplementions` 来交换两个方法的实现
+2. `class_replaceImplemention` 替换方法的实现
+3. `method_setImplemention` 直接设置方法的实现
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

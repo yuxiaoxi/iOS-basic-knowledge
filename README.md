@@ -277,12 +277,12 @@ GCD 使用步聚：
 
 #### GCD 其他方法
 
-dispatch_barriers: 栅栏方法，起到分割任务，经典场景（多读单写）
-dispatch_after: 可用作定时器，延迟执行
-dispatch_once: 执行一次
-dispatch_group: 可以多个任务并发执行完成后再开始另外一个任务，如：在子线程中同时下载多张图片然后回到主线程中进行显示
-dispatch_apply: 迭代执行任务，替代 for 循环
-dispatch_semaphore: GCD 信号量，可以用作锁和异步任务同步执行的转换
+1. dispatch_barriers: 栅栏方法，起到分割任务，经典场景（多读单写）
+2. dispatch_after: 可用作定时器，延迟执行
+3. dispatch_once: 执行一次
+4. dispatch_group: 可以多个任务并发执行完成后再开始另外一个任务，如：在子线程中同时下载多张图片然后回到主线程中进行显示
+5. dispatch_apply: 迭代执行任务，替代 for 循环
+6. dispatch_semaphore: GCD 信号量，可以用作锁和异步任务同步执行的转换
 
 
 

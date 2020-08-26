@@ -191,7 +191,63 @@ IMP: 方法实现指针
 2. `class_replaceImplemention` 替换方法的实现
 3. `method_setImplemention` 直接设置方法的实现
 
+举个例子：
 
+```oc
+Class cls = [self class]
+SEL a = @selector(AFunc)
+SEL b = @selector(BFunc)
+Method athod = class_getInstanceMethod(cls, a)
+Method bthod = class_getInstanceMethod(cls, b)
+Bool added = class_addMethod(cls, a, method_getImplemention(bthod),"@v:")
+if added {
+	class_replaceMethod(cls, a, method_getImplemention(athod), "@v:")
+} else {
+	method_exchangeImplementions(athod, bthod)
+}
+
+```
+
+### Runloop
+
+Runloop: 是一个运行过程中的对象，一直循环，这个对象用来处理运行过程中出现的各种事件（触摸事件、UI刷新、定时器事件、Selector 事件），从而保持线程持续运行，目的是为了所属线程保活，Runloop 在没有事件处理的时候会使线程进入休眠。
+线程的 Runloop 是一一对应关系，主线程自动创建 Runloop ，子线程需要手动创建和启动。
+
+一个 Runloop 对象包含若干个运行模式，每个 mode 又包含若干个输入源、定时源、观察者。同一时间 Runloop 只能选择一个 mode 来启动。
+
+source 源分为两种： 
+1. 非端口的 source0 
+2. 基于端口的 source1
+
+#### Runloop 启动流程
+
+1. 通知观察者 Runloop 已经启动完成
+2. 通知观察者将处理 timer
+3. 通知观察者将处理 source
+4. 处理 source0
+5. 查看是否有 source1 ,如果有则跳转至 9
+6. 通知观察者线程将进入休眠
+7. 线程开始休眠，等待唤醒
+8. 通知观察者线程将被唤醒
+9. 线程被唤醒，处理收到的消息
+10. 通知观察者将退出 Runloop
+
+#### Runloop 的运行模式
+
+1. default 模式： 主线程默认模式
+2. tracking 模式：用户行为跟踪模式（如 scrollview 追踪触摸滑动）
+3. common 模式：是 default 和 tracking 模式的结合体，适用于在 scrollview 中有 timer 场景
+4. initialization 模式：App 启动后使用一次
+5. receiver 模式：接受系统内部事件
+
+#### Runloop 应用场景
+
+1. NSObject 的 performSelector 方法，当它被调用时内部分创建一个 timer 并添加到当前线程的 Runloop 中，如果当前线程没有启动 Runloop ，则个该方法会失效
+2. 常驻线程，Runloop 的目的就是为了线程保活
+3. 自动释放池，Runloop 退出之前会调用它的释放方法（pop）
+4. NSTimer
+5. GCD，切换到主线时会唤醒主线程的 Runloop
+6. 监测卡顿，在主线程 Runloop 中添加 observer，可以使用 CADisplayLink
 
 
 
